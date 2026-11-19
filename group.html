@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Our Cohort - PALS</title>
+  <style>
+    :root {
+      --pals-blue: #1e3a5f;
+      --pals-teal: #2a6b7c;
+      --bg-color: #f4f7f9;
+      --text-main: #2c3e50;
+      --text-muted: #6b7c8e;
+      --card-bg: #ffffff;
+      --border-color: #e1e8ed;
+      --success: #2e7d32;
+      
+      /* Coloring Sheet Variables */
+      --line-color: #222;
+      --line-thick: 3px;
+      --line-thin: 1.5px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+    body { background: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; padding: 3rem 1.5rem; min-height: 100vh; }
+    .group-container { width: 100%; max-width: 1100px; }
+
+    /* Header */
+    .group-header { text-align: center; margin-bottom: 2rem; }
+    .group-header h1 { font-size: 2.5rem; color: var(--pals-blue); margin-bottom: 0.5rem; letter-spacing: -1px; }
+    .group-header p { font-size: 1.2rem; color: var(--text-muted); }
+
+    /* Big Stats */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--pals-blue); color: white; padding: 1.5rem; border-radius: 12px; text-align: center; box-shadow: 0 8px 15px rgba(30, 58, 95, 0.1); }
+    .stat-card.accent { background: var(--pals-teal); }
+    .stat-card.focus { background: #6a4c93; }
+    .stat-value { font-size: 2.5rem; font-weight: 800; line-height: 1; margin-bottom: 0.5rem; }
+    .stat-label { font-size: 0.9rem; opacity: 0.9; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* Layout Grid */
+    .grid-layout { display: grid; grid-template-columns: 1fr 1.5fr; gap: 2rem; }
+    .panel { background: var(--card-bg); border-radius: 16px; padding: 1.5rem; border: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+    .panel-title { font-size: 1.2rem; color: var(--pals-blue); margin-bottom: 1rem; border-bottom: 2px solid var(--bg-color); padding-bottom: 0.8rem; }
+
+    /* =========================================
+       COLORING SHEET BOOKSHELF
+       ========================================= */
+    .bookshelf-wrapper {
+      border: var(--line-thick) solid var(--line-color);
+      border-radius: 4px;
+      background: white;
+      padding: 10px;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .shelf-row {
+      display: flex;
+      align-items: flex-end;
+      border-bottom: var(--line-thick) solid var(--line-color);
+      height: 90px;
+      padding: 0 5px;
+      position: relative;
+    }
+    .shelf-row:last-child { border-bottom: none; }
+
+    /* The wooden base at the bottom */
+    .shelf-base {
+      height: 40px;
+      border-top: var(--line-thick) solid var(--line-color);
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 5px,
+        #f0f0f0 5px,
+        #f0f0f0 10px
+      );
+      border-radius: 0 0 4px 4px;
+      margin-top: -3px; /* overlap borders */
+    }
+
+    /* Books */
+    .book { 
+      position: relative; 
+      border: var(--line-thin) solid var(--line-color);
+      border-bottom: none;
+      margin-right: 4px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      background: white;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .book:hover { transform: translateY(-5px); z-index: 10; }
+    
+    /* Book Fill Effect (Coloring in) */
+    .book-fill {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: var(--pals-teal); /* default color, overwritten inline */
+      transition: height 0.8s ease-in-out;
+      border-top: var(--line-thin) dashed var(--line-color); /* Shows the "current level" line */
+    }
+
+    /* Tooltip */
+    .book-tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--line-color);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      margin-bottom: 2px;
+    }
+    .book:hover .book-tooltip { opacity: 1; }
+
+    /* Decorative Stacked Books (Horizontal) */
+    .stack {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      margin-right: 8px;
+    }
+    .stack-book {
+      height: 12px;
+      border: var(--line-thin) solid var(--line-color);
+      background: white;
+      margin-top: -1.5px;
+      border-radius: 2px;
+    }
+    /* Blank filler books */
+.book-blank {
+  height: 75px; /* Default height */
+  width: 18px;  /* Default width */
+  background: white;
+  border: var(--line-thin) solid var(--line-color);
+  border-bottom: none;
+  margin-right: 3px;
+  cursor: default;
+}
+/* Variations so they don't look identical */
+.book-blank.tall { height: 85px; }
+.book-blank.short { height: 60px; }
+.book-blank.wide { width: 24px; }
+.book-blank.thin { width: 14px; }
+
+    /* Decorative Plant */
+    .plant {
+      width: 30px;
+      height: 25px;
+      border: var(--line-thin) solid var(--line-color);
+      border-radius: 50% 50% 10% 10%;
+      margin-right: 10px;
+      position: relative;
+    }
+    .plant::before {
+      content: '';
+      position: absolute;
+      top: -15px; left: 5px;
+      width: 15px; height: 15px;
+      border: var(--line-thin) solid var(--line-color);
+      border-radius: 50%;
+      border-bottom: none;
+    }
+
+    /* Buttons */
+    .btn-group { display: flex; gap: 10px; }
+    .sim-btn { flex: 1; background: white; color: var(--pals-blue); border: 2px solid var(--pals-blue); padding: 0.8rem; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .sim-btn:hover { background: #eef2f6; }
+    .add-btn { flex: 1; background: var(--pals-teal); color: white; border: 2px solid var(--pals-teal); padding: 0.8rem; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .add-btn:hover { background: #1e4d5a; }
+
+    /* =========================================
+       COMMUNITY ACHIEVEMENT BOARD
+       ========================================= */
+    .community-board { display: flex; flex-direction: column; gap: 1rem; max-height: 480px; overflow-y: auto; padding-right: 5px;}
+    
+    .goal-card { 
+      background: #f8fafc; 
+      border: 1px solid var(--border-color); 
+      border-left: 4px solid var(--pals-teal); 
+      border-radius: 8px; 
+      padding: 1.2rem; 
+      position: relative;
+    }
+    .goal-card.approved { border-left-color: var(--success); background: #f0fdf4; }
+    
+    .goal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .goal-student { font-weight: bold; color: var(--pals-blue); font-size: 0.9rem; }
+    .goal-badge { background: #e2e8f0; color: var(--text-muted); font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+    .goal-card.approved .goal-badge { background: #dcfce7; color: var(--success); }
+    
+    .goal-text { font-size: 1rem; margin-bottom: 1rem; line-height: 1.4; }
+    .goal-meta { font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; }
+    
+    .admin-actions { display: flex; gap: 5px; margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 10px; }
+    .btn-approve { background: #dcfce7; color: var(--success); border: 1px solid #bbf7d0; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
+    .btn-approve:hover { background: #bbf7d0; }
+
+    @media (max-width: 850px) { 
+      .grid-layout { grid-template-columns: 1fr; } 
+      .stats-row { grid-template-columns: 1fr; } 
+    }
+  </style>
+</head>
+<body>
+
+  <div class="group-container">
+    
+    <!-- HEADER -->
+    <header class="group-header">
+      <h1>Our Cohort</h1>
+      <p>Fall 2026 · 15-Week Program</p>
+    </header>
+
+    <!-- BIG STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value">1,250+</div>
+        <div class="stat-label">Total Hours Learned</div>
+      </div>
+      <div class="stat-card accent">
+        <div class="stat-value">42</div>
+        <div class="stat-label">Certificates Earned</div>
+      </div>
+      <div class="stat-card focus">
+        <div class="stat-value">Reading</div>
+        <div class="stat-label">Our Top Focus This Week</div>
+      </div>
+    </div>
+
+    <!-- MAIN LAYOUT -->
+    <div class="grid-layout">
+      
+      <!-- LEFT: COLORING SHEET BOOKSHELF -->
+      <div class="panel">
+        <h2 class="panel-title" style="text-align: center;">📚 Our Reading Shelf</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; text-align: center;">Color in your book as you read! 10 pages = 10%.</p>
+        
+        <div class="bookshelf-wrapper">
+          
+            <!-- Shelf 1 -->
+          <div class="shelf-row">
+            <div class="book" style="height: 75px; width: 20px;" title="Student A"><div class="book-fill" style="height: 100%; background: #2a6b7c;"></div><div class="book-tooltip">100%</div></div>
+            <div class="book" style="height: 85px; width: 25px;" title="Student B"><div class="book-fill" style="height: 80%; background: #e07a5f;"></div><div class="book-tooltip">80%</div></div>
+            <!-- Fillers -->
+            <div class="book-blank tall"></div>
+            <div class="book-blank"></div>
+            <div class="book-blank wide"></div>
+            <div class="book" style="height: 70px; width: 18px;" title="Student C"><div class="book-fill" style="height: 50%; background: #6a4c93;"></div><div class="book-tooltip">50%</div></div>
+            <div class="book-blank short"></div>
+            <div class="book-blank thin"></div>
+            <div class="book" style="height: 80px; width: 22px;" title="Student D"><div class="book-fill" style="height: 30%; background: #2a9d8f;"></div><div class="book-tooltip">30%</div></div>
+            <div class="book-blank"></div>
+            <div class="book-blank tall"></div>
+            <div class="stack">
+              <div class="stack-book" style="width: 35px;"></div>
+              <div class="stack-book" style="width: 35px;"></div>
+              <div class="stack-book" style="width: 35px;"></div>
+            </div>
+          </div>
+
+          <!-- Shelf 2 -->
+          <div class="shelf-row">
+            <div class="book-blank wide"></div>
+            <div class="book" style="height: 65px; width: 30px;" title="Student E"><div class="book-fill" style="height: 10%; background: #d87093;"></div><div class="book-tooltip">10%</div></div>
+            <div class="book-blank"></div>
+            <div class="book-blank short"></div>
+            <div class="book" style="height: 85px; width: 15px;" title="Student F"><div class="book-fill" style="height: 100%; background: #f4a261;"></div><div class="book-tooltip">100%</div></div>
+            <div class="book-blank tall"></div>
+            <div class="book-blank"></div>
+            <div class="book" style="height: 75px; width: 20px;" title="Student G"><div class="book-fill" style="height: 60%; background: #1e3a5f;"></div><div class="book-tooltip">60%</div></div>
+            <div class="book-blank thin"></div>
+            <div class="book-blank wide"></div>
+            <div class="plant"></div>
+          </div>
+
+          <!-- Shelf 3 -->
+          <div class="shelf-row">
+            <div class="book" style="height: 80px; width: 25px;" title="Student H"><div class="book-fill" style="height: 0%;"></div><div class="book-tooltip">Empty</div></div>
+            <div class="book-blank"></div>
+            <div class="book-blank tall"></div>
+            <div class="book" style="height: 70px; width: 20px;" title="Student I"><div class="book-fill" style="height: 0%;"></div><div class="book-tooltip">Empty</div></div>
+            <div class="book-blank short"></div>
+            <div class="book-blank wide"></div>
+            <div class="book" style="height: 85px; width: 22px;" title="Student J"><div class="book-fill" style="height: 40%; background: #e07a5f;"></div><div class="book-tooltip">40%</div></div>
+            <div class="book-blank thin"></div>
+            <div class="book" style="height: 65px; width: 18px;" title="Student K"><div class="book-fill" style="height: 20%; background: #2a9d8f;"></div><div class="book-tooltip">20%</div></div>
+            <div class="book-blank tall"></div>
+            <div class="book" style="height: 75px; width: 20px;" title="Student L"><div class="book-fill" style="height: 90%; background: #6a4c93;"></div><div class="book-tooltip">90%</div></div>
+            <div class="book-blank"></div>
+          </div>
+
+          <!-- Shelf 4 -->
+          <div class="shelf-row">
+            <div class="stack">
+              <div class="stack-book" style="width: 40px;"></div>
+              <div class="stack-book" style="width: 40px;"></div>
+            </div>
+            <div class="book" style="height: 60px; width: 22px;" title="Student M"><div class="book-fill" style="height: 70%; background: #d87093;"></div><div class="book-tooltip">70%</div></div>
+            <div class="book-blank wide"></div>
+            <div class="book-blank"></div>
+            <div class="book" style="height: 80px; width: 28px;" title="Student N"><div class="book-fill" style="height: 35%; background: #f4a261;"></div><div class="book-tooltip">35%</div></div>
+            <div class="book-blank short"></div>
+            <div class="book-blank tall"></div>
+            <div class="book" style="height: 70px; width: 20px;" title="Student O"><div class="book-fill" style="height: 0%;"></div><div class="book-tooltip">Empty</div></div>
+            <div class="book-blank thin"></div>
+            <div class="book-blank wide"></div>
+            <div class="book-blank"></div>
+          </div>
+
+          <!-- Shelf 5 -->
+          <div class="shelf-row">
+            <div class="book" style="height: 85px; width: 20px;" title="Student P"><div class="book-fill" style="height: 100%; background: #2a6b7c;"></div><div class="book-tooltip">100%</div></div>
+            <div class="book-blank tall"></div>
+            <div class="book" style="height: 70px; width: 24px;" title="Student Q"><div class="book-fill" style="height: 50%; background: #1e3a5f;"></div><div class="book-tooltip">50%</div></div>
+            <div class="book-blank short"></div>
+            <div class="book-blank"></div>
+            <div class="book-blank wide"></div>
+            <div class="book-blank thin"></div>
+            <div class="plant" style="margin-left: auto;"></div>
+            <div class="stack">
+              <div class="stack-book" style="width: 30px;"></div>
+              <div class="stack-book" style="width: 30px;"></div>
+            </div>
+          </div>
+
+          <div class="shelf-base"></div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="btn-group">
+          <button class="sim-btn" onclick="simulateRandomStudent()">Simulate Random</button>
+          <button class="add-btn" onclick="openAddHoursModal()">📖 Add Your Hours</button>
+        </div>
+      </div>
+
+      <!-- RIGHT: COMMUNITY ACHIEVEMENT BOARD -->
+      <div class="panel">
+        <h2 class="panel-title">🌟 Community Achievement Board</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Goals and wins shared by the group. Moderated by your coordinator.</p>
+
+        <div class="community-board" id="boardFeed">
+          
+          <div class="goal-card approved">
+            <div class="goal-header">
+              <span class="goal-student">Anonymous Student</span>
+              <span class="goal-badge">Approved ✅</span>
+            </div>
+            <div class="goal-text">"I want to finish reading my first full chapter book by the end of the month. I'm on page 40!"</div>
+            <div class="goal-meta"><span>Skill: Reading</span> <span>2 days ago</span></div>
+          </div>
+
+          <div class="goal-card approved">
+            <div class="goal-header">
+              <span class="goal-student">Anonymous Student</span>
+              <span class="goal-badge">Approved ✅</span>
+            </div>
+            <div class="goal-text">"Finally passed my First Aid online quiz! 100% on the first try. Onto the in-person class next week."</div>
+            <div class="goal-meta"><span>Skill: Certifications</span> <span>Yesterday</span></div>
+          </div>
+
+          <!-- Pending Approval Simulation -->
+          <div class="goal-card" id="pendingGoal">
+            <div class="goal-header">
+              <span class="goal-student">Anonymous Student</span>
+              <span class="goal-badge">Pending Approval ⏳</span>
+            </div>
+            <div class="goal-text">"I logged 3 hours of reading at home this week. It was really hard to focus but I did it!"</div>
+            <div class="goal-meta"><span>Skill: Reading</span> <span>10 mins ago</span></div>
+            <div class="admin-actions">
+              <button class="btn-approve" onclick="approveGoal(this)">Approve for Board</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal for Adding Hours (Simulated) -->
+  <div id="addHoursModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
+    <div style="background: white; padding: 2rem; border-radius: 12px; width: 90%; max-width: 400px; text-align: center;">
+      <h2 style="color: var(--pals-blue); margin-bottom: 1rem;">Log Your Reading</h2>
+      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">How many pages did you read today?</p>
+      
+      <input type="number" id="pagesRead" placeholder="e.g., 15" style="width: 100%; padding: 0.8rem; font-size: 1.2rem; text-align: center; border: 2px solid var(--border-color); border-radius: 8px; margin-bottom: 1rem;">
+      
+      <div style="display: flex; gap: 10px;">
+        <button onclick="closeAddHoursModal()" style="flex: 1; padding: 0.8rem; border: none; border-radius: 6px; background: #eee; cursor: pointer; font-weight: bold;">Cancel</button>
+        <button onclick="submitHours()" style="flex: 1; padding: 0.8rem; border: none; border-radius: 6px; background: var(--pals-teal); color: white; cursor: pointer; font-weight: bold;">Add to Shelf</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Buttons Logic ---
+
+    // 1. Simulate Random Student (Picks a random empty or partial book and adds 10%)
+    function simulateRandomStudent() {
+      const fills = document.querySelectorAll('.book-fill');
+      // Filter to only books that aren't 100% full
+      const availableBooks = Array.from(fills).filter(fill => parseInt(fill.style.height || '0') < 100);
+      
+      if (availableBooks.length === 0) {
+        alert("The whole shelf is full! Amazing reading everyone!");
+        return;
+      }
+
+      // Pick a random book
+      const randomBook = availableBooks[Math.floor(Math.random() * availableBooks.length)];
+      
+      // If it's empty, give it a random color
+      if (parseInt(randomBook.style.height || '0') === 0) {
+        const colors = ['#2a6b7c', '#e07a5f', '#6a4c93', '#2a9d8f', '#d87093', '#f4a261', '#1e3a5f'];
+        randomBook.style.background = colors[Math.floor(Math.random() * colors.length)];
+      }
+
+      let currentHeight = parseInt(randomBook.style.height || '0');
+      let newHeight = Math.min(currentHeight + 10, 100);
+      randomBook.style.height = newHeight + '%';
+      
+      // Update tooltip
+      const tooltip = randomBook.parentElement.querySelector('.book-tooltip');
+      if (tooltip) tooltip.innerText = newHeight + '%';
+    }
+
+    // 2. Add Your Hours (Modal Logic)
+    function openAddHoursModal() {
+      document.getElementById('addHoursModal').style.display = 'flex';
+      document.getElementById('pagesRead').value = '';
+    }
+
+    function closeAddHoursModal() {
+      document.getElementById('addHoursModal').style.display = 'none';
+    }
+
+    function submitHours() {
+      const pages = parseInt(document.getElementById('pagesRead').value);
+      if (!pages || pages <= 0) {
+        alert("Please enter a valid number of pages.");
+        return;
+      }
+
+      // Logic: 100 pages = 100%. So 1 page = 1%.
+      const percentageToAdd = Math.min(pages, 100); // cap at 100
+      
+      // For the mockup, let's just fill the first empty/partial book we find on the shelf
+      const fills = document.querySelectorAll('.book-fill');
+      const targetBook = Array.from(fills).find(fill => parseInt(fill.style.height || '0') < 100);
+
+      if (targetBook) {
+        if (parseInt(targetBook.style.height || '0') === 0) {
+          targetBook.style.background = '#d87093'; // Default pink for their book
+        }
+        
+        let currentHeight = parseInt(targetBook.style.height || '0');
+        let newHeight = Math.min(currentHeight + percentageToAdd, 100);
+        
+        targetBook.style.height = newHeight + '%';
+        
+        const tooltip = targetBook.parentElement.querySelector('.book-tooltip');
+        if (tooltip) tooltip.innerText = newHeight + '%';
+      }
+
+      closeAddHoursModal();
+      alert(`Success! You logged ${pages} pages. Your book has been colored in!`);
+      
+      // Optionally add a new goal to the board to show it updates
+      addNewGoalToBoard(pages);
+    }
+
+    // 3. Approve Goal Logic
+    function approveGoal(button) {
+      const card = button.closest('.goal-card');
+      card.classList.add('approved');
+      
+      const badge = card.querySelector('.goal-badge');
+      badge.innerText = 'Approved ✅';
+      
+      const actions = card.querySelector('.admin-actions');
+      if (actions) actions.remove();
+    }
+
+    // 4. Simulate Adding a Goal to the Board when hours are logged
+    function addNewGoalToBoard(pages) {
+      const feed = document.getElementById('boardFeed');
+      const newCard = document.createElement('div');
+      newCard.className = 'goal-card';
+      newCard.style.animation = 'fadeIn 0.5s ease';
+      newCard.innerHTML = `
+        <div class="goal-header">
+          <span class="goal-student">You</span>
+          <span class="goal-badge">Pending Approval ⏳</span>
+        </div>
+        <div class="goal-text">"I just read ${pages} pages at home! My book is filling up."</div>
+        <div class="goal-meta"><span>Skill: Reading</span> <span>Just now</span></div>
+      `;
+      
+      // Insert at the top of the feed
+      feed.prepend(newCard);
+    }
+  </script>
+</body>
+</html>

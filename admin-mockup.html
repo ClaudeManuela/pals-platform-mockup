@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EYSS Admin Dashboard v2 - PALS</title>
+  <style>
+    :root {
+      --pals-blue: #1e3a5f;
+      --pals-teal: #2a6b7c;
+      --bg-color: #f4f7f9;
+      --text-main: #2c3e50;
+      --text-muted: #6b7c8e;
+      --card-bg: #ffffff;
+      --border-color: #e1e8ed;
+      --success: #2e7d32;
+      --warning: #f57c00;
+      --danger: #c62828;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+    body { background: var(--bg-color); color: var(--text-main); display: flex; min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar { width: 260px; background: var(--pals-blue); color: white; padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 2rem; flex-shrink: 0; }
+    .sidebar h2 { font-size: 1.5rem; letter-spacing: 1px; }
+    .sidebar p { font-size: 0.8rem; color: #a0b5c8; }
+    .nav-menu { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+    .nav-menu li { padding: 0.8rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 500; transition: 0.2s; display: flex; align-items: center; gap: 10px;}
+    .nav-menu li.active { background: rgba(255, 255, 255, 0.15); border-left: 4px solid #6ab0c9; }
+    .nav-menu li:hover:not(.active) { background: rgba(255, 255, 255, 0.05); }
+
+    /* Main Content */
+    .main-content { flex: 1; padding: 2rem 3rem; overflow-y: auto; height: 100vh; }
+    .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .header-bar h1 { font-size: 1.8rem; color: var(--pals-blue); }
+    .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+    .btn-primary { background: var(--pals-teal); color: white; }
+    .btn-outline { background: transparent; border: 1px solid var(--pals-blue); color: var(--pals-blue); }
+    .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.8rem; }
+
+    /* Tabs */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Cards & Panels */
+    .panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .panel-title { font-size: 1.2rem; color: var(--pals-blue); margin-bottom: 1rem; border-bottom: 2px solid var(--bg-color); padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;}
+
+    /* Grids */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+
+    /* Metric Cards */
+    .metric-card { background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; text-align: center; }
+    .metric-value { font-size: 2.5rem; font-weight: 800; color: var(--pals-teal); line-height: 1; margin-bottom: 0.5rem; }
+    .metric-label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Clickable Learner Cards */
+    .learner-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .learner-card { background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 1.2rem; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; position: relative; overflow: hidden;}
+    .learner-card:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.08); border-color: var(--pals-teal); }
+    .learner-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--pals-teal); }
+    .learner-card.waitlist::before { background: var(--warning); }
+    .learner-card.self-paced::before { background: #6a4c93; }
+    
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; padding-left: 10px;}
+    .learner-name { font-weight: 700; font-size: 1.1rem; color: var(--pals-blue); }
+    .badge { padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
+    .badge-cohort { background: #e3f2fd; color: #1565c0; }
+    .badge-self { background: #f3e5f5; color: #7b1fa2; }
+    .badge-waitlist { background: #fff3e0; color: var(--warning); }
+    
+    .card-stats { font-size: 0.85rem; padding-left: 10px; color: var(--text-muted); line-height: 1.6; }
+    .card-stats strong { color: var(--text-main); }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { text-align: left; padding: 0.8rem; background: #f8fafc; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-color); }
+    td { padding: 0.8rem; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+    
+    /* Progress Bars */
+    .progress-container { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+    .progress-label { font-size: 0.8rem; width: 140px; }
+    .progress-bg { flex: 1; height: 8px; background: #e2e8f0; border-radius: 10px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 10px; background: var(--pals-teal); }
+
+    /* Charts (CSS Only Mockup) */
+    .chart-container { display: flex; align-items: flex-end; gap: 1.5rem; height: 180px; padding-top: 1rem; border-bottom: 2px solid var(--border-color); margin-bottom: 2rem; }
+    .chart-bar { flex: 1; background: var(--pals-teal); border-radius: 4px 4px 0 0; position: relative; text-align: center; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 5px; color: white; font-size: 0.8rem; font-weight: bold; }
+    .chart-label { position: absolute; bottom: -25px; left: 0; right: 0; text-align: center; font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-overlay.active { display: flex; }
+    .modal-content { background: white; width: 90%; max-width: 700px; border-radius: 12px; padding: 2rem; max-height: 90vh; overflow-y: auto; position: relative; }
+    .close-btn { position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); border: none; background: none; }
+    .modal-header { border-bottom: 2px solid var(--bg-color); padding-bottom: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;}
+    
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+    .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--pals-blue); }
+    .form-group input, .form-group select, .form-group textarea { padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; width: 100%; }
+    textarea { resize: vertical; min-height: 80px; }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div>
+      <h2>Project Adult Literacy Society</h2>
+      <p>Empowering Youth through Skills Support</p>
+    </div>
+    <ul class="nav-menu">
+      <li class="active" onclick="switchTab('analytics', this)">📊 Program Analytics</li>
+      <li onclick="switchTab('database', this)">👥 Learner Database</li>
+      <li onclick="switchTab('assessments', this)">📝 Assessment Entry</li>
+      <li onclick="switchTab('partners', this)">🤝 Partner Hub</li>
+      <li onclick="switchTab('attendance', this)">📅 Attendance & Events</li>
+      <li onclick="switchTab('reports', this)">📈 Funder Reports</li>
+    </ul>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    
+    <header class="header-bar">
+      <div>
+        <h1 id="page-title">Program Analytics</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Admin Master View</p>
+      </div>
+      <div>
+        <button class="btn btn-outline" onclick="alert('Exports/Imports IDONet JSON')">⬆ IDONet Sync</button>
+        <button class="btn btn-primary" onclick="alert('Opens the intake form.')">+ New Learner</button>
+      </div>
+    </header>
+
+    <!-- TAB 1: ANALYTICS -->
+    <div id="analytics" class="tab-content active">
+      <div class="grid-4" style="margin-bottom: 2rem;">
+        <div class="metric-card">
+          <div class="metric-value">2</div>
+          <div class="metric-label">Active Cohorts</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">17</div>
+          <div class="metric-label">Active Students</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">3</div>
+          <div class="metric-label">Waitlisted</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">150</div>
+          <div class="metric-label">Grant Target (2 Yrs)</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-title">Current Cohort Status</div>
+          <table>
+            <thead>
+              <tr><th>Cohort Name</th><th>Type</th><th>Enrolled</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Fall AM Cohort</strong></td>
+                <td><span class="badge badge-cohort">15-Week</span></td>
+                <td>5 / 6</td>
+                <td><span style="color: var(--success); font-weight: bold;">Week 4</span></td>
+              </tr>
+              <tr>
+                <td><strong>Fall PM Cohort</strong></td>
+                <td><span class="badge badge-cohort" style="background: #e0f2f1; color: #00695c;">10-Week</span></td>
+                <td>11 / 11</td>
+                <td><span style="color: var(--success); font-weight: bold;">Week 2</span></td>
+              </tr>
+              <tr>
+                <td><strong>Self-Paced Intake</strong></td>
+                <td><span class="badge badge-self">Self-Paced</span></td>
+                <td>16</td>
+                <td><span style="color: var(--warning); font-weight: bold;">Ongoing</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Engagement Overview</div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Average across active students this week.</p>
+          <div class="progress-container">
+            <span class="progress-label">Attendance Rate</span>
+            <div class="progress-bg"><div class="progress-fill" style="width: 82%;"></div></div>
+            <span style="font-size: 0.8rem; font-weight: bold;">82%</span>
+          </div>
+          <div class="progress-container">
+            <span class="progress-label">At-Home Tasks Logged</span>
+            <div class="progress-bg"><div class="progress-fill" style="width: 65%;"></div></div>
+            <span style="font-size: 0.8rem; font-weight: bold;">65%</span>
+          </div>
+          <div class="progress-container">
+            <span class="progress-label">Workbook Scans Uploaded</span>
+            <div class="progress-bg"><div class="progress-fill" style="width: 45%;"></div></div>
+            <span style="font-size: 0.8rem; font-weight: bold;">45%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: LEARNER DATABASE -->
+    <div id="database" class="tab-content">
+      <div class="panel" style="display: flex; gap: 1rem; align-items: center; background: #eef7fc; border-color: #bce0f0;">
+        <strong style="color: var(--pals-blue);">Privacy Mode Active:</strong>
+        <span style="font-size: 0.9rem; color: var(--text-muted);">Sensitive data hidden. Click a card to open the profile.</span>
+        <button class="btn btn-outline btn-sm" style="margin-left: auto;">Unlock</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <span>Active Learners (10)</span>
+          <select style="padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color);">
+            <option>Filter: All</option>
+            <option>15-Week</option>
+            <option>10-Week</option>
+            <option>Self-Paced</option>
+            <option>Waitlist</option>
+          </select>
+        </div>
+        
+        <div class="learner-grid">
+          <!-- Card 1 -->
+          <div class="learner-card" onclick="openModal('Learner Name', 'Cohort')">
+            <div class="card-header">
+              <span class="learner-name">Student 1</span>
+              <span class="badge badge-cohort">15-Week</span>
+            </div>
+            <div class="card-stats">
+              Intake: <strong>Done</strong><br>
+              Attendance: <strong>85%</strong><br>
+              Uploads: <strong>4 files</strong>
+            </div>
+          </div>
+          <!-- Card 2 -->
+          <div class="learner-card" onclick="openModal('Learner Name', 'Cohort')">
+            <div class="card-header">
+              <span class="learner-name">Student 2</span>
+              <span class="badge badge-cohort">15-Week</span>
+            </div>
+            <div class="card-stats">
+              Intake: <strong>Done</strong><br>
+              Attendance: <strong>90%</strong><br>
+              Uploads: <strong>2 files</strong>
+            </div>
+          </div>
+          <!-- Card 3 -->
+          <div class="learner-card" onclick="openModal('Learner Name', 'Cohort')">
+            <div class="card-header">
+              <span class="learner-name">Student 3</span>
+              <span class="badge badge-cohort" style="background: #e0f2f1; color: #00695c;">10-Week</span>
+            </div>
+            <div class="card-stats">
+              Intake: <strong>In Progress</strong><br>
+              Attendance: <strong>75%</strong><br>
+              Uploads: <strong>0 files</strong>
+            </div>
+          </div>
+          <!-- Card 4 -->
+          <div class="learner-card" onclick="openModal('Learner Name', 'Cohort')">
+            <div class="card-header">
+              <span class="learner-name">Student 4</span>
+              <span class="badge badge-cohort" style="background: #e0f2f1; color: #00695c;">10-Week</span>
+            </div>
+            <div class="card-stats">
+              Intake: <strong>Done</strong><br>
+              Attendance: <strong>100%</strong><br>
+              Uploads: <strong>5 files</strong>
+            </div>
+          </div>
+          <!-- Card 5 -->
+          <div class="learner-card self-paced" onclick="openModal('Learner Name', 'Self-Paced')">
+            <div class="card-header">
+              <span class="learner-name">Student 5</span>
+              <span class="badge badge-self">Self-Paced</span>
+            </div>
+            <div class="card-stats">
+              Intake: <strong>Done</strong><br>
+              Last Active: <strong>Today</strong><br>
+              Uploads: <strong>1 file</strong>
+            </div>
+          </div>
+          <!-- Card 6 -->
+          <div class="learner-card self-paced" onclick="openModal('Learner Name', 'Self-Paced')">
+            <div class="card-header">
+              <span class="learner-name">Student 6</span>
+              <span class="badge badge-self">Self-Paced</span>
+            </div>
+            <div class="card-stats">
+              Intake: <strong>Done</strong><br>
+              Last Active: <strong>3 days ago</strong><br>
+              Uploads: <strong>3 files</strong>
+            </div>
+          </div>
+          <!-- Card 7 -->
+          <div class="learner-card self-paced" onclick="openModal('Learner Name', 'Self-Paced')">
+            <div class="card-header">
+              <span class="learner-name">Student 7</span>
+              <span class="badge badge-self">Self-Paced</span>
+            </div>
+            <div class="card-stats">
+              Intake: <strong>Done</strong><br>
+              Last Active: <strong>1 week ago</strong><br>
+              Uploads: <strong>0 files</strong>
+            </div>
+          </div>
+          <!-- Card 8 (Waitlist) -->
+          <div class="learner-card waitlist" onclick="openModal('Learner Name', 'Waitlist')">
+            <div class="card-header">
+              <span class="learner-name">Student 8</span>
+              <span class="badge badge-waitlist">Waitlist</span>
+            </div>
+            <div class="card-stats">
+              Intake: <strong>Done</strong><br>
+              Waiting for: <strong>15-Week</strong><br>
+              Availability: <strong>Mon PM</strong>
+            </div>
+          </div>
+          <!-- Card 9 (Waitlist) -->
+          <div class="learner-card waitlist" onclick="openModal('Learner Name', 'Waitlist')">
+            <div class="card-header">
+              <span class="learner-name">Student 9</span>
+              <span class="badge badge-waitlist">Waitlist</span>
+            </div>
+            <div class="card-stats">
+              Intake: <strong>In Progress</strong><br>
+              Waiting for: <strong>10-Week</strong><br>
+              Availability: <strong>Weekends</strong>
+            </div>
+          </div>
+          <!-- Card 10 (Waitlist) -->
+          <div class="learner-card waitlist" onclick="openModal('Learner Name', 'Waitlist')">
+            <div class="card-header">
+              <span class="learner-name">Student 10</span>
+              <span class="badge badge-waitlist">Waitlist</span>
+            </div>
+            <div class="card-stats">
+              Intake: <strong>Not Started</strong><br>
+              Waiting for: <strong>Self-Paced</strong><br>
+              Availability: <strong>Flexible</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: ASSESSMENT ENTRY -->
+    <div id="assessments" class="tab-content">
+      <div class="grid-2">
+        <div>
+          <div class="panel">
+            <div class="panel-title">Select Learner</div>
+            <div class="form-group">
+              <select>
+                <option>Student 1</option>
+                <option>Student 2</option>
+                <option>Student 3</option>
+              </select>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">1. SFS Scores (12-60)</div>
+            <div class="grid-3">
+              <div class="form-group"><label>Reading</label><input type="number" placeholder="0"></div>
+              <div class="form-group"><label>Numeracy</label><input type="number" placeholder="0"></div>
+              <div class="form-group"><label>Writing</label><input type="number" placeholder="0"></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">2. Youth / Self-Assessments (0-4)</div>
+            <div class="grid-2">
+              <div class="form-group"><label>Reading Self assessment</label><input type="number" placeholder="0"></div>
+              <div class="form-group"><label>Numeracy Self assessment</label><input type="number" placeholder="0"></div>
+              <div class="form-group"><label>Writing Self assessment</label><input type="number" placeholder="0"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="panel" style="height: 100%;">
+            <div class="panel-title">Uploaded Scans</div>
+            <div style="border: 2px dashed var(--border-color); padding: 2rem; text-align: center; border-radius: 8px; background: #fafbfc; margin-bottom: 1rem;">
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;">📸</div>
+              <button class="btn btn-outline" onclick="alert('Upload file dialog')">Browse Files</button>
+            </div>
+            <ul style="list-style: none;">
+              <li style="padding: 0.5rem; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 0.5rem; font-size: 0.85rem; display: flex; justify-content: space-between;">
+                <span>📄 Week1_Reading.jpg</span> <span style="color: var(--success);">Approved</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: PARTNER HUB -->
+    <div id="partners" class="tab-content">
+      <div class="panel">
+        <div class="panel-title">Partner Organizations</div>
+        <table>
+          <thead><tr><th>Partner</th><th>Role</th><th>Offering</th></tr></thead>
+          <tbody>
+            <tr><td><strong>The Hallway Café</strong></td><td>Employment readiness</td><td>Kitchen skills, Customer service</td></tr> <td> 5 spots left</td>
+            <tr><td><strong>KULAN</strong></td><td>Cultural support</td><td>Identity workshops</td></tr> <td> 10 spots left</td>
+            <tr><td><strong>CLAC College</strong></td><td>Trades exploration</td><td>WHMIS, First Aid, Trades Tour</td></tr> 
+            <tr><td><strong>EPL</strong></td><td>Digital access</td><td>Library cards, Digital labs</td></tr> <tr
+          </tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Cohort Certificate Progress</div>
+        <div class="grid-2">
+          <div>
+            <h4 style="margin-bottom: 1rem; color: var(--pals-blue);">Mandatory</h4>
+            <div class="progress-container"><span class="progress-label">First Aid (8 hrs)</span><div class="progress-bg"><div class="progress-fill" style="width: 65%;"></div></div><span style="font-size: 0.8rem; font-weight: bold;">65%</span></div>
+            <div class="progress-container"><span class="progress-label">WHMIS</span><div class="progress-bg"><div class="progress-fill" style="width: 40%;"></div></div><span style="font-size: 0.8rem; font-weight: bold;">40%</span></div>
+          </div>
+          <div>
+            <h4 style="margin-bottom: 1rem; color: var(--pals-blue);">Optional</h4>
+            <div class="progress-container"><span class="progress-label">ProServe</span><div class="progress-bg"><div class="progress-fill" style="width: 25%; background: #6a4c93;"></div></div><span style="font-size: 0.8rem; font-weight: bold;">25%</span></div>
+            <div class="progress-container"><span class="progress-label">Infection Control</span><div class="progress-bg"><div class="progress-fill" style="width: 10%; background: #6a4c93;"></div></div><span style="font-size: 0.8rem; font-weight: bold;">10%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: ATTENDANCE -->
+    <div id="attendance" class="tab-content">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-title">Attendance Log (Today)</div>
+          <table>
+            <thead><tr><th>Learner</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td>Student 1</td><td><span class="badge badge-success">Present</span></td><td><button class="btn btn-outline btn-sm">Edit</button></td></tr>
+              <tr><td>Student 2</td><td><span class="badge badge-warning">Late</span></td><td><button class="btn btn-outline btn-sm">Edit</button></td></tr>
+              <tr><td>Student 3</td><td><span class="badge badge-danger">Absent</span></td><td><button class="btn btn-outline btn-sm">Edit</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Upcoming Calendar</div>
+          <ul style="list-style: none;">
+            <li style="padding: 0.8rem; border-left: 4px solid var(--pals-teal); background: #f8fafc; margin-bottom: 0.5rem; font-size: 0.9rem;"><strong>Nov 22:</strong> EPL Digital Lab</li>
+            <li style="padding: 0.8rem; border-left: 4px solid var(--warning); background: #f8fafc; margin-bottom: 0.5rem; font-size: 0.9rem;"><strong>Nov 28:</strong> Student Social</li>
+            <li style="padding: 0.8rem; border-left: 4px solid var(--pals-blue); background: #f8fafc; margin-bottom: 0.5rem; font-size: 0.9rem;"><strong>Dec 5:</strong> Monthly field trip: Telus World of Science</li>
+            <li style="padding: 0.8rem; border-left: 4px solid var(--pals-teal); background: #f8fafc; margin-bottom: 0.5rem; font-size: 0.9rem;"><strong>Dec 12:</strong> Mentorship Panel</li>
+            <li style="padding: 0.8rem; border-left: 4px solid var(--warning); background: #f8fafc; margin-bottom: 0.5rem; font-size: 0.9rem;"><strong>Jan 19:</strong> Pottery: Art workshop</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: FUNDER REPORTS -->
+    <div id="reports" class="tab-content">
+      <div class="panel" style="text-align: center; background: #1e3a5f; color: white;">
+        <h2>EYSS Grant Impact Report</h2>
+        <p>City of Edmonton - FCSS</p>
+      </div>
+      
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-title">Skill Growth (SFS)</div>
+          <div class="chart-container">
+            <div class="chart-bar" style="height: 30%;">18 <span class="chart-label">Read (Before)</span></div>
+            <div class="chart-bar" style="height: 60%; background: #3b82f6;">35 <span class="chart-label">Read (After)</span></div>
+            <div class="chart-bar" style="height: 40%;">24 <span class="chart-label">Num (Before)</span></div>
+            <div class="chart-bar" style="height: 75%; background: #3b82f6;">42 <span class="chart-label">Num (After)</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Attendance & Engagement</div>
+          <div class="grid-2" style="margin-bottom: 1rem;">
+            <div style="text-align: center; padding: 1rem; background: #f8fafc; border-radius: 8px;">
+              <div style="font-size: 2rem; font-weight: bold; color: var(--pals-teal);">85%</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">Avg Attendance</div>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: #f8fafc; border-radius: 8px;">
+              <div style="font-size: 2rem; font-weight: bold; color: var(--pals-teal);">124</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">Learning Logs Submitted</div>
+            </div>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">Target: 120-150 youth. Current enrolled: 42.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Student Testimonials</div>
+        <div style="background: #fdfbf7; padding: 1rem; border-left: 4px solid var(--warning); margin-bottom: 1rem; border-radius: 4px;">
+          <p style="font-style: italic; font-size: 0.9rem;">"The program helped me get my First Aid certificate so I could apply for a job at the pool. The notebook kept me organized." - <strong>Student 1 (Uploaded Scan)</strong></p>
+        </div>
+        <div style="background: #fdfbf7; padding: 1rem; border-left: 4px solid var(--warning); margin-bottom: 1rem; border-radius: 4px;">
+          <p style="font-style: italic; font-size: 0.9rem;">"I finally understand how to read a bus schedule on my own." - <strong>Student 4 (Uploaded Scan)</strong></p>
+        </div>
+        <div style="text-align: right;">
+          <button class="btn btn-primary" onclick="alert('Generates PDF')">Export Full Report</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="learnerModal">
+    <div class="modal-content">
+      <button class="close-btn" onclick="closeModal()">×</button>
+      <div class="modal-header">
+        <h2 id="modal-name" style="color: var(--pals-blue);">Learner Profile</h2>
+        <span id="modal-type" class="badge badge-cohort">Program</span>
+      </div>
+      
+      <div class="grid-2">
+        <div>
+          <h4 style="margin-bottom: 1rem; color: var(--pals-teal);">Logistics & Contact</h4>
+          <div class="form-group"><label>Phone / Email</label><input type="text" placeholder="Fill in gap..."></div>
+          <div class="form-group"><label>Availability</label><input type="text" placeholder="Fill in gap..."></div>
+          <div class="form-group"><label>Computer / Library Access</label><input type="text" placeholder="Fill in gap..."></div>
+        </div>
+        <div>
+          <h4 style="margin-bottom: 1rem; color: var(--pals-teal);">Program Data</h4>
+          <div class="form-group"><label>Intake Status</label><select><option>Done</option><option>In Progress</option><option>Not Done</option></select></div>
+          <div class="form-group"><label>Admin Notes</label><textarea placeholder="Fill in gap..."></textarea></div>
+        </div>
+      </div>
+
+      <div style="text-align: right; margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="alert('Saved!'); closeModal();">Save Profile</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tabId, navItem) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.nav-menu li').forEach(item => item.classList.remove('active'));
+      
+      document.getElementById(tabId).classList.add('active');
+      navItem.classList.add('active');
+
+      const titles = {
+        'analytics': 'Program Analytics',
+        'database': 'Learner Database',
+        'assessments': 'Assessment Entry',
+        'partners': 'Partner Hub',
+        'attendance': 'Attendance & Events',
+        'reports': 'Funder Reports'
+      };
+      document.getElementById('page-title').innerText = titles[tabId];
+    }
+
+    function openModal(name, type) {
+      document.getElementById('modal-name').innerText = name;
+      const typeBadge = document.getElementById('modal-type');
+      typeBadge.innerText = type;
+      typeBadge.className = 'badge ' + (type === 'Self-Paced' ? 'badge-self' : type === 'Waitlist' ? 'badge-waitlist' : 'badge-cohort');
+      document.getElementById('learnerModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('learnerModal').classList.remove('active');
+    }
+
+    // Close modal on outside click
+    document.getElementById('learnerModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+  </script>
+</body>
+</html>
